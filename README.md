@@ -5,3 +5,5 @@ node-curl-impersonate is a library that allows for you to use curl-impersonate n
 ## All credit goes to
 
 https://github.com/wearrrrr/curl-impersonate-node
+
+fixed issue with large page support
