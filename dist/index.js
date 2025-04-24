@@ -7,7 +7,7 @@
 */
 import presets from "./presets.js";
 import * as proc from "child_process";
-import * as path from 'path';
+import * as path from "path";
 import * as fs from "fs";
 const __dirname = import.meta.dirname;
 export class CurlImpersonate {
@@ -21,7 +21,12 @@ export class CurlImpersonate {
         this.options = options;
         this.validMethods = ["GET", "POST"];
         this.binary = "";
-        this.impersonatePresets = ["chrome-110", "chrome-116", "firefox-109", "firefox-117"];
+        this.impersonatePresets = [
+            "chrome-110",
+            "chrome-116",
+            "firefox-109",
+            "firefox-117",
+        ];
     }
     checkIfPresetAndMerge() {
         if (this.options.impersonate === undefined)
@@ -29,7 +34,9 @@ export class CurlImpersonate {
         if (this.impersonatePresets.includes(this.options.impersonate)) {
             let preset = presets[this.options.impersonate];
             this.options.headers = Object.assign(this.options.headers, preset.headers);
-            this.options.flags = this.options.flags ? this.options.flags.concat(preset.flags) : preset.flags;
+            this.options.flags = this.options.flags
+                ? this.options.flags.concat(preset.flags)
+                : preset.flags;
         }
     }
     makeRequest(url) {
@@ -38,24 +45,22 @@ export class CurlImpersonate {
         return new Promise((resolve, reject) => {
             if (this.validateOptions(this.options)) {
                 this.setProperBinary();
-                if (this.binary) {
-                    if (!fs.existsSync(path.join(__dirname, '..', 'bin', this.binary))) {
-                        throw new Error("Binary not found! Please check your installation.");
-                    }
-                    fs.chmodSync(path.join(__dirname, '..', 'bin', this.binary), 0o755);
+                if (this.binary &&
+                    fs.existsSync(path.join(__dirname, "..", "bin", this.binary))) {
+                    fs.chmodSync(path.join(__dirname, "..", "bin", this.binary), 0o755);
                 }
                 this.checkIfPresetAndMerge();
                 let headers = this.convertHeaderObjectToCURL();
                 let flags = this.options.flags || [];
                 if (this.options.method == "GET") {
                     this.getRequest(flags, headers)
-                        .then(response => resolve(response))
-                        .catch(error => reject(error));
+                        .then((response) => resolve(response))
+                        .catch((error) => reject(error));
                 }
                 else if (this.options.method == "POST") {
                     this.postRequest(flags, headers, this.options.body)
-                        .then(response => resolve(response))
-                        .catch(error => reject(error));
+                        .then((response) => resolve(response))
+                        .catch((error) => reject(error));
                 }
                 else {
                     // Handle other HTTP methods if needed
@@ -99,11 +104,13 @@ export class CurlImpersonate {
             }
         }
         else {
-            throw new Error("Body is undefined in a post request! Current body is " + this.options.body);
+            throw new Error("Body is undefined in a post request! Current body is " +
+                this.options.body);
         }
     }
     setProperBinary() {
-        let isFF = this.options.impersonate == "firefox-109" || this.options.impersonate == "firefox-117";
+        let isFF = this.options.impersonate == "firefox-109" ||
+            this.options.impersonate == "firefox-117";
         switch (process.platform) {
             case "linux":
                 if (process.arch == "x64") {
@@ -142,8 +149,8 @@ export class CurlImpersonate {
     async getRequest(flags, headers) {
         // GET REQUEST
         flags.push("-v");
-        let binpath = path.join(__dirname, '..', 'bin', this.binary);
-        let args = `${flags.join(' ')} ${headers} '${this.url}'`;
+        let binpath = path.join(__dirname, "..", "bin", this.binary);
+        let args = `${flags.join(" ")} ${headers} '${this.url}'`;
         if (this.options.verbose) {
             console.log(new Object({
                 binpath: binpath,
@@ -151,7 +158,12 @@ export class CurlImpersonate {
                 url: this.url,
             }));
         }
-        const result = proc.spawnSync(`${binpath} ${args}`, { shell: true });
+        // 1024x1024x2 =2147483648 adds large page support
+        // https://nodejs.org/api/child_process.html#child_process_child_process_spawnsync_command_args_options
+        const result = proc.spawnSync(`${binpath} ${args}`, {
+            shell: true,
+            maxBuffer: 2147483648,
+        });
         let response = result.stdout.toString();
         let verbose = result.stderr.toString();
         let requestData = this.extractRequestData(verbose);
@@ -163,7 +175,7 @@ export class CurlImpersonate {
             response: response,
             responseHeaders: respHeaders,
             requestHeaders: this.options.headers,
-            verboseStatus: this.options.verbose ? true : false
+            verboseStatus: this.options.verbose ? true : false,
         };
         return returnObject;
     }
@@ -171,11 +183,13 @@ export class CurlImpersonate {
         // POST REQUEST
         flags.push("-v");
         let curlBody = this.setupBodyArgument(body);
-        let binpath = path.join(__dirname, '..', 'bin', this.binary);
-        let args = `${flags.join(' ')} ${headers} ${this.url}`;
-        const result = proc.spawnSync(`${binpath} ${args} -d ${curlBody}`, { shell: true });
+        let binpath = path.join(__dirname, "..", "bin", this.binary);
+        let args = `${flags.join(" ")} ${headers} ${this.url}`;
+        const result = proc.spawnSync(`${binpath} ${args} -d ${curlBody}`, {
+            shell: true,
+        });
         let response = result.stdout.toString();
-        let cleanedPayload = response.replace(/\s+\+\s+/g, '');
+        let cleanedPayload = response.replace(/\s+\+\s+/g, "");
         let verbose = result.stderr.toString();
         let requestData = this.extractRequestData(verbose);
         let respHeaders = this.extractResponseHeaders(verbose);
@@ -220,7 +234,7 @@ export class CurlImpersonate {
         if (match) {
             match.forEach((header) => {
                 const headerWithoutPrefix = header.substring(2);
-                const headerParts = headerWithoutPrefix.split(': ');
+                const headerParts = headerWithoutPrefix.split(": ");
                 if (headerParts.length > 1) {
                     const headerName = headerParts[0].trim();
                     const headerValue = headerParts[1].trim();
@@ -231,7 +245,9 @@ export class CurlImpersonate {
         return responseHeaders;
     }
     convertHeaderObjectToCURL() {
-        return Object.entries(this.options.headers).map(([key, value]) => `-H '${key}: ${value}'`).join(' ');
+        return Object.entries(this.options.headers)
+            .map(([key, value]) => `-H '${key}: ${value}'`)
+            .join(" ");
     }
 }
 export default CurlImpersonate;
