@@ -49,9 +49,13 @@ export class CurlImpersonate {
 
   private checkIfPresetAndMerge() {
     if (this.options.impersonate === undefined) return
+    if (this.options.impersonate.includes("_")) return
     if (this.impersonatePresets.includes(this.options.impersonate)) {
       let preset = presets[this.options.impersonate]
-      this.options.headers = Object.assign(this.options.headers, preset.headers)
+      this.options.headers = Object.assign(
+        this.options?.headers ?? {},
+        preset.headers,
+      )
       this.options.flags = this.options.flags
         ? this.options.flags.concat(preset.flags)
         : preset.flags
@@ -128,6 +132,10 @@ export class CurlImpersonate {
     }
   }
   private setProperBinary() {
+    if (this.options?.impersonate?.includes("_")) {
+      this.binary = this.options.impersonate
+      return
+    }
     let isFF =
       this.options.impersonate == "firefox-109" ||
       this.options.impersonate == "firefox-117"
@@ -279,9 +287,14 @@ export class CurlImpersonate {
   }
 
   private convertHeaderObjectToCURL() {
-    return Object.entries(this.options.headers)
-      .map(([key, value]) => `-H '${key}: ${value}'`)
-      .join(" ")
+    if (!this.options?.headers) {
+      return ""
+    }
+    return (
+      Object.entries(this.options.headers)
+        .map(([key, value]) => `-H '${key}: ${value}'`)
+        .join(" ") ?? ""
+    )
   }
 }
 
