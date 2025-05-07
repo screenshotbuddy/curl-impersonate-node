@@ -49,6 +49,10 @@ export class CurlImpersonate {
                 this.setProperBinary();
                 if (this.binary &&
                     fs.existsSync(path.join(__dirname, "..", "bin", this.binary))) {
+                    if (this.binary.includes("_")) {
+                        // this is main binary
+                        fs.chmodSync(path.join(__dirname, "..", "bin", "curl-impersonate"), 0o755);
+                    }
                     fs.chmodSync(path.join(__dirname, "..", "bin", this.binary), 0o755);
                 }
                 this.checkIfPresetAndMerge();
